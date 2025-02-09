@@ -1,47 +1,79 @@
-#include "FileWork.h"
 #include <iostream>
 
+template <typename T>
+class UniquePtr {
+private:
+    T* ptr;
+public:
+    UniquePtr(T* ptr = nullptr) : ptr(ptr) {}
+    ~UniquePtr() { delete ptr; }
+
+    T& operator*() const { return *ptr; }
+    T* operator->() const { return ptr; }
+
+    UniquePtr(UniquePtr&& other) noexcept : ptr(other.ptr) {
+        other.ptr = nullptr;
+    }
+
+    UniquePtr& operator=(UniquePtr&& other) noexcept {
+        if (this != &other) {
+            delete ptr;
+            ptr = other.ptr;
+            other.ptr = nullptr;
+        }
+        return *this;
+    }
+};
+
+template <typename T>
+class SharedPtr {
+private:
+    T* ptr;
+    int* ref_count;
+public:
+    SharedPtr(T* p = nullptr) : ptr(p), ref_count(new int(1)) {}
+
+    SharedPtr(const SharedPtr& other) {
+        ptr = other.ptr;
+        ref_count = other.ref_count;
+        (*ref_count)++;
+    }
+
+    SharedPtr& operator=(const SharedPtr& other) {
+        if (this != &other) {
+            ClearPtr();
+            ptr = other.ptr;
+            ref_count = other.ref_count;
+            (*ref_count)++;
+        }
+        return *this;
+    }
+
+    ~SharedPtr() {
+        ClearPtr();
+    }
+
+    void ClearPtr() {
+        if (ref_count) {
+            (*ref_count)--;
+            if (*ref_count == 0) {
+                delete ptr;
+                delete ref_count;
+            }
+        }
+    }
+
+    T& operator*() const { return *ptr; }
+    T* operator->() const { return ptr; }
+};
+
 int main() {
-    std::string filePath;
-    std::cout << "Enter path to file: ";
-    std::cin >> filePath;
 
-    FileWork fileHandler(filePath);
-    int choice;
-    do {
-        std::cout << "\nMenu: "
-            << "\n1. Print file"
-            << "\n2. Find line"
-            << "\n3. Replace line"
-            << "\n4. Reverse file"
-            << "\n5. Exit"
-            << "\nYour choose: ";
-        std::cin >> choice;
+    UniquePtr<int> uptr(new int(10));
+    std::cout << *uptr << std::endl;
 
-        if (choice == 1) {
-            fileHandler.displayFile();
-        }
-        else if (choice == 2) {
-            std::string searchString;
-            std::cout << "Enter string for find: ";
-            std::getline(std::cin, searchString);
-            fileHandler.searchLine(searchString);
-        }
-        else if (choice == 3) {
-            std::string searchString, newString;
-            std::cout << "Enter string for replace: ";
-            std::getline(std::cin, searchString);
-            std::cout << "Enter new string: ";
-            std::getline(std::cin, newString);
-            fileHandler.replaceLine(searchString, newString);
-        }
-        else if (choice == 4) {
-            fileHandler.reverseFile();
-        }
-        else if (choice > 5) {
-            std::cout << "Choice is over 5" << std::endl;
-        }
-    } while (choice != 5);
+    SharedPtr<int> shptr(new int(20));
+    std::cout << *shptr << std::endl;
 
     return 0;
 }
